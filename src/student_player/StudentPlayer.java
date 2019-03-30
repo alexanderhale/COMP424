@@ -1,9 +1,12 @@
 package student_player;
 
+import java.util.ArrayList;
+
 import boardgame.Move;
 
 import pentago_swap.PentagoPlayer;
 import pentago_swap.PentagoBoardState;
+import pentago_swap.PentagoMove;
 
 /** A player file submitted by a student. */
 public class StudentPlayer extends PentagoPlayer {
@@ -14,7 +17,7 @@ public class StudentPlayer extends PentagoPlayer {
      * associate you with your agent. The constructor should do nothing else.
      */
     public StudentPlayer() {
-        super("xxxxxxxxx");
+        super("260672475");
     }
 
     /**
@@ -23,14 +26,31 @@ public class StudentPlayer extends PentagoPlayer {
      * make decisions.
      */
     public Move chooseMove(PentagoBoardState boardState) {
-        // You probably will make separate functions in MyTools.
-        // For example, maybe you'll need to load some pre-processed best opening
-        // strategies...
-        MyTools.getSomething();
 
-        Move myMove = boardState.getRandomMove();
-
-        // Return your move to be processed by the server.
-        return myMove;
+        ArrayList<PentagoMove> allMoves = boardState.getAllLegalMoves();
+        int myColour = boardState.getTurnPlayer();
+        
+        // weak approach to start with (will probably be too computationally expensive):
+        	// for each move in allMoves
+        		// make the move
+        		// make random moves for both players until endgame
+        		// assign a value to that move (1 for win, -1 for loss, 0 for draw)
+        			// as soon as a move is encountered that won, pick that move
+        			// TODO later: make multiple random runs for each one and pick the one with the highest score (i.e. Monte-Carlo
+        		// pick one of the moves that results in a win
+        // TODO later: implement a-b pruning to make this faster (hopefully fast enough?)
+        
+        for (PentagoMove m : allMoves) {
+        	PentagoBoardState movedBoard = ((PentagoBoardState)boardState.clone());
+        	movedBoard.processMove(m);
+        	int defaultPolicy = MyTools.defaultPolicy(myColour, movedBoard);
+        	
+        	if (defaultPolicy == 1) {
+        		return m;
+        	}
+        }
+        
+        // if no good move was found, return a random move
+        return boardState.getRandomMove();
     }
 }
