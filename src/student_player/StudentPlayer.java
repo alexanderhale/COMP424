@@ -25,24 +25,30 @@ public class StudentPlayer extends PentagoPlayer {
      * This is the primary method that you need to implement. The ``boardState``
      * object contains the current state of the game, which your agent must use to
      * make decisions.
+     * 
+     * TODO later: implement a-b pruning to make this faster (hopefully fast enough?)
      */
     public Move chooseMove(PentagoBoardState boardState) {
-
+    	
+    	// get all the possible moves
         ArrayList<PentagoMove> allMoves = boardState.getAllLegalMoves();
+        
+        // determine what colour we are
         int myColour = boardState.getTurnPlayer();
-        PentagoMove lastResort = null;
         
-        // weak approach to start with (will probably be too computationally expensive):
-        	// for each move in allMoves
-        		// make the move
-        		// make random moves for both players until endgame
-        		// assign a value to that move (1 for win, -1 for loss, 0 for draw)
-        			// as soon as a move is encountered that won, pick that move
-        			// TODO later: make multiple random runs for each one and pick the one with the highest score (i.e. Monte-Carlo
-        		// pick one of the moves that results in a win
-        // TODO later: implement a-b pruning to make this faster (hopefully fast enough?)
+        // number of times the default policy is allowed to run to find a score
+        int n = 50;
+   	 /* TODO future improvement: instead of repeating 10 times, add an argument N, where N is
+   	 * the number of times to repeat. Later in the game (when there are fewer moves to consider
+   	 * and the default policy is faster), increase N. */
         
+        // variables to keep track of the best move we've found
+        PentagoMove bestMove = null;
+        int bestMoveScore = 0 - n;	// initialize this n losses
+        
+        // try each of the available moves
         for (PentagoMove m : allMoves) {
+        	// make the move
         	PentagoBoardState movedBoard = ((PentagoBoardState)boardState.clone());
         	movedBoard.processMove(m);
         	
@@ -51,23 +57,29 @@ public class StudentPlayer extends PentagoPlayer {
         		if (movedBoard.getWinner() == myColour) {
         			return m;
         		} else if (movedBoard.getWinner() == Board.DRAW) {
-        			// save this move as a last resort
-        			lastResort = m;
+        			// this move's score is 0. If that's better than the current best move, save it
+        			if (bestMoveScore < 0) {
+        				bestMove = m;
+        				bestMoveScore = 0;
+        			}
         		}
         		// if this move resulted in a loss, we don't want it - move on
         	} else {
         		// if this move doesn't end the game, we need to determine whether it's a good move
-            	int defaultPolicy = MyTools.defaultPolicy(myColour, movedBoard);
+        			// run the fast default policy from after this move to determine a score for this move
+            	int score = MyTools.defaultPolicy(myColour, movedBoard, n);
             	
-            	if (defaultPolicy == 1) {
-            		return m;
+            	// if this move's score is the best we've seen so far, save it
+            	if (score > bestMoveScore) {
+            		bestMove = m;
+            		bestMoveScore = score;
             	}
         	}
         }
         
-        if (lastResort != null) {
-        	// if we found a move that ended the game in a draw, and we're here, that's the best we've got - use it
-        	return lastResort;
+        if (bestMove != null) {
+        	// return the best move we've found
+        	return bestMove;
         } else {
         	// if no good move was found, return a random move
             return boardState.getRandomMove();

@@ -6,21 +6,32 @@ import pentago_swap.PentagoMove;
 
 public class MyTools {
 
-	// make random moves for both players until the end of the game
-		// return 1 if argument myColour's team wins the game
-		// return -1 if argument myColour's team loses the game
-		// return 0 for a draw
-    public static int defaultPolicy(int myColour, PentagoBoardState boardState) {
-    	while (!boardState.gameOver()) {
-    		PentagoMove m = (PentagoMove) boardState.getRandomMove();
-    		boardState.processMove(m);
+	/**
+	 * Makes random moves for both players until the end of the game. Repeats 10 times, then
+	 * returns a score. +1 for a win, no change for a draw, -1 for a loss.
+	 * 
+	 * @param myColour - the StudentPlayer's colour
+	 * @param boardState - the game board
+	 * @param n - the number of times the default policy is allowed to run (resource-limited)
+	 * @return - the likelihood that myColour won the game
+	 */
+    public static int defaultPolicy(int myColour, PentagoBoardState boardState, int n) {
+    	int score = 0;
+    	
+    	for (int i = 0; i < n; i++) {
+	    	while (!boardState.gameOver()) {
+	    		PentagoMove m = (PentagoMove) boardState.getRandomMove();
+	    		boardState.processMove(m);
+	    	}
+	    	if (boardState.getWinner() == myColour) {
+	    		score++;
+	    	} else if (boardState.getWinner() == Board.DRAW) {
+	    		// do nothing
+	    	} else {
+	    		score--;
+	    	}
     	}
-    	if (boardState.getWinner() == myColour) {
-    		return 1;
-    	} else if (boardState.getWinner() == Board.DRAW) {
-    		return 0;
-    	} else {
-    		return -1;
-    	}
+    	
+    	return score;
     }
 }
