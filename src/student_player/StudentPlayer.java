@@ -2,6 +2,7 @@ package student_player;
 
 import java.util.ArrayList;
 
+import boardgame.Board;
 import boardgame.Move;
 
 import pentago_swap.PentagoPlayer;
@@ -29,6 +30,7 @@ public class StudentPlayer extends PentagoPlayer {
 
         ArrayList<PentagoMove> allMoves = boardState.getAllLegalMoves();
         int myColour = boardState.getTurnPlayer();
+        PentagoMove lastResort = null;
         
         // weak approach to start with (will probably be too computationally expensive):
         	// for each move in allMoves
@@ -43,14 +45,32 @@ public class StudentPlayer extends PentagoPlayer {
         for (PentagoMove m : allMoves) {
         	PentagoBoardState movedBoard = ((PentagoBoardState)boardState.clone());
         	movedBoard.processMove(m);
-        	int defaultPolicy = MyTools.defaultPolicy(myColour, movedBoard);
         	
-        	if (defaultPolicy == 1) {
-        		return m;
+        	// check whether this move ends the game
+        	if (movedBoard.gameOver()) {
+        		if (movedBoard.getWinner() == myColour) {
+        			return m;
+        		} else if (movedBoard.getWinner() == Board.DRAW) {
+        			// save this move as a last resort
+        			lastResort = m;
+        		}
+        		// if this move resulted in a loss, we don't want it - move on
+        	} else {
+        		// if this move doesn't end the game, we need to determine whether it's a good move
+            	int defaultPolicy = MyTools.defaultPolicy(myColour, movedBoard);
+            	
+            	if (defaultPolicy == 1) {
+            		return m;
+            	}
         	}
         }
         
-        // if no good move was found, return a random move
-        return boardState.getRandomMove();
+        if (lastResort != null) {
+        	// if we found a move that ended the game in a draw, and we're here, that's the best we've got - use it
+        	return lastResort;
+        } else {
+        	// if no good move was found, return a random move
+            return boardState.getRandomMove();
+        }
     }
 }
