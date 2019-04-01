@@ -12,6 +12,9 @@ import pentago_swap.PentagoMove;
 /** A player file submitted by a student. */
 public class StudentPlayer extends PentagoPlayer {
 
+	// list to store the time that each move took to decide
+	ArrayList<Long> moveTimes = new ArrayList<Long>();
+	
     /**
      * You must modify this constructor to return your student number. This is
      * important, because this is what the code that runs the competition uses to
@@ -29,6 +32,8 @@ public class StudentPlayer extends PentagoPlayer {
      * TODO later: implement a-b pruning to make this faster (hopefully fast enough?)
      */
     public Move chooseMove(PentagoBoardState boardState) {
+    	// start timer to record length of each move
+    	long startTime = System.nanoTime();
     	
     	// get all the possible moves
         ArrayList<PentagoMove> allMoves = boardState.getAllLegalMoves();
@@ -38,9 +43,8 @@ public class StudentPlayer extends PentagoPlayer {
         
         // number of times the default policy is allowed to run to find a score
         int n = 50;
-   	 /* TODO future improvement: instead of repeating 10 times, add an argument N, where N is
-   	 * the number of times to repeat. Later in the game (when there are fewer moves to consider
-   	 * and the default policy is faster), increase N. */
+	   	 /* TODO future improvement: Later in the game (when there are fewer moves to consider
+	   	 * and the default policy is faster), increase N. */
         
         // variables to keep track of the best move we've found
         PentagoMove bestMove = null;
@@ -53,8 +57,15 @@ public class StudentPlayer extends PentagoPlayer {
         	movedBoard.processMove(m);
         	
         	// check whether this move ends the game
-        	if (movedBoard.gameOver()) {
+        	if (movedBoard.gameOver()) {       		
         		if (movedBoard.getWinner() == myColour) {
+            		// print time taken per move
+        				// TODO make this also print if we lose
+            		moveTimes.add(System.nanoTime() - startTime);
+            		for (int i = 1; i <= moveTimes.size(); i++) {
+            			System.out.println("Move " + i + ": " + ((double)moveTimes.get(i - 1)/(double)1000000000) + "s");
+            		}
+            		
         			return m;
         		} else if (movedBoard.getWinner() == Board.DRAW) {
         			// this move's score is 0. If that's better than the current best move, save it
@@ -76,6 +87,8 @@ public class StudentPlayer extends PentagoPlayer {
             	}
         	}
         }
+        
+        moveTimes.add(System.nanoTime() - startTime);
         
         if (bestMove != null) {
         	// return the best move we've found
