@@ -18,20 +18,24 @@ public class MyTools {
     public static int defaultPolicy(int myColour, PentagoBoardState boardState, int n) {
     	int score = 0;
     	
+    	// run the default policy the specified number of times
     	for (int i = 0; i < n; i++) {
+    		// play all the way until the game is over
 	    	while (!boardState.gameOver()) {
+	    		// make random moves for both players
 	    		PentagoMove m = (PentagoMove) boardState.getRandomMove();
 	    		boardState.processMove(m);
 	    	}
 	    	if (boardState.getWinner() == myColour) {
-	    		score++;
+	    		score++;	// if we win, +1
 	    	} else if (boardState.getWinner() == Board.DRAW) {
-	    		// do nothing
+	    		// do nothing: if we draw, +0
 	    	} else {
-	    		score--;
+	    		score--;	// if we lose, -1
 	    	}
     	}
     	
+    	// return the resulting score
     	return score;
     }
 }
