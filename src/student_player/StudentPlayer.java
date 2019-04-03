@@ -83,7 +83,6 @@ public class StudentPlayer extends PentagoPlayer {
         
         // pick the most promising node
         Collections.sort(toExpand);			// sort the list, with the best node first
-       // Collections.reverse(toExpand);
         Node bestNode = toExpand.get(0);
         
         // continue exploring while we still have at least 0.25 seconds left
@@ -119,7 +118,6 @@ public class StudentPlayer extends PentagoPlayer {
         	}
         	
         	Collections.sort(toExpand);		// sort the list, with the best node first
-        	// Collections.reverse(toExpand);
         	bestNode = toExpand.get(0);		// pick the most promising node
         }
         
