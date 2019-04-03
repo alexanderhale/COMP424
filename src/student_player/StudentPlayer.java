@@ -1,6 +1,7 @@
 package student_player;
 
 import java.util.ArrayList;
+import java.util.Collections;
 
 import boardgame.Board;
 import boardgame.Move;
@@ -14,6 +15,9 @@ public class StudentPlayer extends PentagoPlayer {
 
 	// list to store the time that each move took to decide
 	ArrayList<Long> moveTimes = new ArrayList<Long>();
+	
+	// root node of the search tree
+		// TODO make the tree outside here, so that we can save search procedures between moves
 	
     /**
      * You must modify this constructor to return your student number. This is
@@ -35,10 +39,7 @@ public class StudentPlayer extends PentagoPlayer {
     	// start timer to record length of each move
     	long startTime = System.nanoTime();
     	
-    	// get all the possible moves
-        ArrayList<PentagoMove> allMoves = boardState.getAllLegalMoves();
-        
-        // determine what colour we are
+    	// determine what colour we are
         int myColour = boardState.getTurnPlayer();
         
         // number of times the default policy is allowed to run to find a score
@@ -46,56 +47,98 @@ public class StudentPlayer extends PentagoPlayer {
 	   	 /* TODO future improvement: Later in the game (when there are fewer moves to consider
 	   	 * and the default policy is faster), increase N. */
         
-        // variables to keep track of the best move we've found
-        PentagoMove bestMove = null;
-        int bestMoveScore = 0 - n;	// initialize this n losses
+        // make the root node
+        Node root = new Node(null);
+        root.setRoot();
         
-        // try each of the available moves
-        for (PentagoMove m : allMoves) {
+        // list of nodes in consideration to be expanded
+        ArrayList<Node> toExpand = new ArrayList<Node>();
+        
+        // add all possible depth-1 nodes to the tree AND run the default policy on them
+        for (PentagoMove m : boardState.getAllLegalMoves()) {
+        	// add all available depth 1 nodes to the tree
+        	Node c = new Node(m);
+        	c.addParent(root);
+        	root.addChild(c);
+        	
         	// make the move
         	PentagoBoardState movedBoard = ((PentagoBoardState)boardState.clone());
         	movedBoard.processMove(m);
         	
-        	// check whether this move ends the game
-        	if (movedBoard.gameOver()) {       		
+        	// check if this move ends the game before bothering to spend time on the default policy iterations
+        	if (movedBoard.gameOver()) {
         		if (movedBoard.getWinner() == myColour) {
-            		// print time taken per move
-        				// TODO make this also print if we lose
-            		moveTimes.add(System.nanoTime() - startTime);
-            		for (int i = 1; i <= moveTimes.size(); i++) {
-            			System.out.println("Move " + i + ": " + ((double)moveTimes.get(i - 1)/(double)1000000000) + "s");
-            		}
-            		
-        			return m;
-        		} else if (movedBoard.getWinner() == Board.DRAW) {
-        			// this move's score is 0. If that's better than the current best move, save it
-        			if (bestMoveScore < 0) {
-        				bestMove = m;
-        				bestMoveScore = 0;
-        			}
+        			c.addSimulations(1, 1);
+        		} else {
+        			c.addSimulations(0, 1);
         		}
-        		// if this move resulted in a loss, we don't want it - move on
         	} else {
-        		// if this move doesn't end the game, we need to determine whether it's a good move
-        			// run the fast default policy from after this move to determine a score for this move
-            	int score = MyTools.defaultPolicy(myColour, movedBoard, n);
+	        	// run the default policy starting from this node
+	        	c.addSimulations(MyTools.defaultPolicy(myColour, movedBoard, n), n);
+        	}
+        	
+        	// add this node to the list of nodes to explore
+        	toExpand.add(c);
+        }
+        
+        // pick the most promising node
+        Collections.sort(toExpand);			// sort the list, with the best node first
+       // Collections.reverse(toExpand);
+        Node bestNode = toExpand.get(0);
+        
+        // continue exploring while we still have at least 0.25 seconds left
+        while (System.nanoTime() - startTime < 1750000000) {
+        	// expand the best move
+        	PentagoBoardState movedBoard = ((PentagoBoardState)boardState.clone());
+        	movedBoard.processMove(bestNode.getMove());
+        	
+        	for (PentagoMove m : movedBoard.getAllLegalMoves()) {
+        		// add all nodes to the tree
+            	Node c = new Node(m);
+            	c.addParent(bestNode);
+            	bestNode.addChild(c);
             	
-            	// if this move's score is the best we've seen so far, save it
-            	if (score > bestMoveScore) {
-            		bestMove = m;
-            		bestMoveScore = score;
+            	// make the move
+            	PentagoBoardState movedBoardDepth2 = ((PentagoBoardState)movedBoard.clone());
+            	movedBoardDepth2.processMove(m);
+            	
+            	// check if this move ends the game before bothering to spend time on the default policy iterations
+            	if (movedBoardDepth2.gameOver()) {
+            		if (movedBoardDepth2.getWinner() == myColour) {
+            			c.addSimulations(1, 1);
+            		} else {
+            			c.addSimulations(0, 1);
+            		}
+            	} else {
+    	        	// run the default policy starting from this node
+    	        	c.addSimulations(MyTools.defaultPolicy(myColour, movedBoardDepth2, n), n);
             	}
+            	
+            	// add this node to the list of nodes to explore
+            	toExpand.add(c);
+        	}
+        	
+        	Collections.sort(toExpand);		// sort the list, with the best node first
+        	// Collections.reverse(toExpand);
+        	bestNode = toExpand.get(0);		// pick the most promising node
+        }
+        
+        // find the most promising node at depth 1
+        double bestWinAverage = 0;
+        bestNode = null;
+        for (Node depth1 : root.getChildren()) {
+        	if (depth1.winAverage() > bestWinAverage) {
+        		bestWinAverage = depth1.winAverage();
+        		bestNode = depth1;
         	}
         }
         
-        moveTimes.add(System.nanoTime() - startTime);
+        System.out.println("Move time: " + ((double)(System.nanoTime() - startTime)/(double)1000000000) + "s");
         
-        if (bestMove != null) {
-        	// return the best move we've found
-        	return bestMove;
+        if (bestNode != null) {
+        	return bestNode.getMove();
         } else {
-        	// if no good move was found, return a random move
-            return boardState.getRandomMove();
+        	return boardState.getRandomMove();
         }
     }
 }

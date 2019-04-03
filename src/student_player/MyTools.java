@@ -7,8 +7,8 @@ import pentago_swap.PentagoMove;
 public class MyTools {
 
 	/**
-	 * Makes random moves for both players until the end of the game. Repeats 10 times, then
-	 * returns a score. +1 for a win, no change for a draw, -1 for a loss.
+	 * Makes random moves for both players until the end of the game. Returns the number of
+	 * wins resulting from n tries (where n is specified by the provided argument).
 	 * 
 	 * @param myColour - the StudentPlayer's colour
 	 * @param boardState - the game board
@@ -16,7 +16,7 @@ public class MyTools {
 	 * @return - the likelihood that myColour won the game
 	 */
     public static int defaultPolicy(int myColour, PentagoBoardState boardState, int n) {
-    	int score = 0;
+    	int wins = 0;
     	
     	for (int i = 0; i < n; i++) {
 	    	while (!boardState.gameOver()) {
@@ -24,14 +24,10 @@ public class MyTools {
 	    		boardState.processMove(m);
 	    	}
 	    	if (boardState.getWinner() == myColour) {
-	    		score++;
-	    	} else if (boardState.getWinner() == Board.DRAW) {
-	    		// do nothing
-	    	} else {
-	    		score--;
-	    	}
+	    		wins++;
+	    	} 
     	}
     	
-    	return score;
+    	return wins;
     }
 }
