@@ -28,13 +28,8 @@ public class StudentPlayer extends PentagoPlayer {
      * This is the primary method that you need to implement. The ``boardState``
      * object contains the current state of the game, which your agent must use to
      * make decisions.
-     * 
-     * TODO later: implement a-b pruning to make this faster (hopefully fast enough?)
      */
-    public Move chooseMove(PentagoBoardState boardState) {
-    	// start timer to record length of each move
-    	long startTime = System.nanoTime();
-    	
+    public Move chooseMove(PentagoBoardState boardState) {    	
     	// get all the possible moves
         ArrayList<PentagoMove> allMoves = boardState.getAllLegalMoves();
         
@@ -59,13 +54,7 @@ public class StudentPlayer extends PentagoPlayer {
         	// check whether this move ends the game
         	if (movedBoard.gameOver()) {       		
         		if (movedBoard.getWinner() == myColour) {
-            		// print time taken per move
-        				// TODO make this also print if we lose
-            		moveTimes.add(System.nanoTime() - startTime);
-            		for (int i = 1; i <= moveTimes.size(); i++) {
-            			System.out.println("Move " + i + ": " + ((double)moveTimes.get(i - 1)/(double)1000000000) + "s");
-            		}
-            		
+        			// this move wins the game for us, so we should make it
         			return m;
         		} else if (movedBoard.getWinner() == Board.DRAW) {
         			// this move's score is 0. If that's better than the current best move, save it
@@ -87,8 +76,6 @@ public class StudentPlayer extends PentagoPlayer {
             	}
         	}
         }
-        
-        moveTimes.add(System.nanoTime() - startTime);
         
         if (bestMove != null) {
         	// return the best move we've found
