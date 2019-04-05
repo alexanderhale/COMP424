@@ -38,8 +38,6 @@ public class StudentPlayer extends PentagoPlayer {
         
         // number of times the default policy is allowed to run to find a score
         int n = 50;
-	   	 /* TODO future improvement: Later in the game (when there are fewer moves to consider
-	   	 * and the default policy is faster), increase N. */
         
         // variables to keep track of the best move we've found
         PentagoMove bestMove = null;
