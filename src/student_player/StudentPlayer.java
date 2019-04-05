@@ -14,15 +14,15 @@ public class StudentPlayer extends PentagoPlayer {
 	// list to store the time that each move took to decide
 	ArrayList<Long> moveTimes = new ArrayList<Long>();
 	
-	// variables to fill on the first move of the game:
-		// root node of the search tree
-	    Node root = new Node(null);
+	/* variables to fill on the first move of the game */
+	// root node of the search tree
+    Node root = new Node(null);
+
+    // queue of nodes in consideration to be expanded
+    PriorityQueue<Node> toExpand = new PriorityQueue<Node>();
     
-	    // queue of nodes in consideration to be expanded
-        PriorityQueue<Node> toExpand = new PriorityQueue<Node>();
-	    
-	    // which colour our player is playing for
-	    int myColour;
+    // which colour our player is playing for
+    int myColour;
 	
     /**
      * You must modify this constructor to return your student number. This is
