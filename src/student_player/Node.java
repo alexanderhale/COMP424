@@ -2,7 +2,7 @@ package student_player;
 
 import java.util.ArrayList;
 
-import pentago_swap.PentagoMove;
+import pentago_swap.PentagoBoardState;
 
 /**
  * Implements a node in the game search tree. Tracks the node's parent(s), child(ren), 
@@ -17,17 +17,19 @@ public class Node implements Comparable<Node> {
 	private ArrayList<Node> children = new ArrayList<Node>();
 	private int simulationsWon;
 	private int totalSimulations;
-	private PentagoMove move;
+	private PentagoBoardState boardState;
 	private boolean root;
+	private boolean leaf;
 	private boolean myColour;
 	
-	public Node(PentagoMove move) {
+	public Node(PentagoBoardState boardState) {
 		this.parents = new ArrayList<Node>();
 		this.children = new ArrayList<Node>();
 		this.simulationsWon = 0;
 		this.totalSimulations = 0;
-		this.move = move;
+		this.boardState = boardState;
 		this.root = false;
+		this.leaf = false;
 	}
 	
 	public void setRoot() {
@@ -36,6 +38,10 @@ public class Node implements Comparable<Node> {
 	
 	public boolean isRoot() {
 		return this.root;
+	}
+	
+	public boolean isLeaf() {
+		return this.leaf;
 	}
 	
 	public void addParent(Node p) {
@@ -91,8 +97,15 @@ public class Node implements Comparable<Node> {
 		return ((double)this.simulationsWon / (double)this.totalSimulations);
 	}
 	
-	public PentagoMove getMove() {
-		return this.move;
+	public int winColour() {
+		if (this.isLeaf()) {
+			return this.getBoardState().getWinner();
+		}
+		return 0;
+	}
+	
+	public PentagoBoardState getBoardState() {
+		return this.boardState;
 	}
 	
 	public int depth() {
@@ -111,9 +124,9 @@ public class Node implements Comparable<Node> {
 		double av1 = this.winAverage();
 		double av2 = n.winAverage();
 		
-		if (av1 > av2) {
+		if (av1 < av2) {
 			return -1;
-		} else if (av1 < av2) {
+		} else if (av1 > av2) {
 			return 1;
 		} else {
 			return 0;

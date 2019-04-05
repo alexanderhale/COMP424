@@ -1,6 +1,5 @@
 package student_player;
 
-import boardgame.Board;
 import pentago_swap.PentagoBoardState;
 import pentago_swap.PentagoMove;
 

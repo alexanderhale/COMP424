@@ -1,9 +1,7 @@
 package student_player;
 
 import java.util.ArrayList;
-import java.util.Collections;
-
-import boardgame.Board;
+import java.util.PriorityQueue;
 import boardgame.Move;
 
 import pentago_swap.PentagoPlayer;
@@ -16,8 +14,15 @@ public class StudentPlayer extends PentagoPlayer {
 	// list to store the time that each move took to decide
 	ArrayList<Long> moveTimes = new ArrayList<Long>();
 	
-	// root node of the search tree
-		// TODO make the tree outside here, so that we can save search procedures between moves
+	// variables to fill on the first move of the game:
+		// root node of the search tree
+	    Node root = new Node(null);
+    
+	    // queue of nodes in consideration to be expanded
+        PriorityQueue<Node> toExpand = new PriorityQueue<Node>();
+	    
+	    // which colour our player is playing for
+	    int myColour;
 	
     /**
      * You must modify this constructor to return your student number. This is
@@ -39,104 +44,57 @@ public class StudentPlayer extends PentagoPlayer {
     	// start timer to record length of each move
     	long startTime = System.nanoTime();
     	
-    	// determine what colour we are
-        int myColour = boardState.getTurnPlayer();
-        
-        // number of times the default policy is allowed to run to find a score
-        int n = 50;
-	   	 /* TODO future improvement: Later in the game (when there are fewer moves to consider
-	   	 * and the default policy is faster), increase N. */
-        
-        // make the root node
-        Node root = new Node(null);
-        root.setRoot();
-        
-        // list of nodes in consideration to be expanded
-        ArrayList<Node> toExpand = new ArrayList<Node>();
-        
-        // add all possible depth-1 nodes to the tree AND run the default policy on them
-        for (PentagoMove m : boardState.getAllLegalMoves()) {
-        	// add all available depth 1 nodes to the tree
-        	Node c = new Node(m);
-        	c.addParent(root);
-        	root.addChild(c);
-        	
-        	// make the move
-        	PentagoBoardState movedBoard = ((PentagoBoardState)boardState.clone());
-        	movedBoard.processMove(m);
-        	
-        	// check if this move ends the game before bothering to spend time on the default policy iterations
-        	if (movedBoard.gameOver()) {
-        		if (movedBoard.getWinner() == myColour) {
-        			c.addSimulations(1, 1);
-        		} else {
-        			c.addSimulations(0, 1);
-        		}
-        	} else {
-	        	// run the default policy starting from this node
-	        	c.addSimulations(MyTools.defaultPolicy(myColour, movedBoard, n), n);
-        	}
-        	
-        	// add this node to the list of nodes to explore
-        	toExpand.add(c);
-        }
-        
-        // pick the most promising node
-        Collections.sort(toExpand);			// sort the list, with the best node first
-        Node bestNode = toExpand.get(0);
-        
-        // continue exploring while we still have at least 0.25 seconds left
-        while (System.nanoTime() - startTime < 1750000000) {
-        	// expand the best move
-        	PentagoBoardState movedBoard = ((PentagoBoardState)boardState.clone());
-        	movedBoard.processMove(bestNode.getMove());
-        	
-        	for (PentagoMove m : movedBoard.getAllLegalMoves()) {
-        		// add all nodes to the tree
-            	Node c = new Node(m);
-            	c.addParent(bestNode);
-            	bestNode.addChild(c);
+    	// number of Monte-Carlo trials to run
+    	int trials = 50;
+    	
+    	// keep track of best move ("best" = best win average)
+    	Node bestMove;
+    	int bestMoveScore = 0;
+    	
+    	if (boardState.getTurnNumber() == 0) {
+    		// determine what colour we are
+            myColour = boardState.getTurnPlayer();
+    		
+    		// if we're playing first, the current boardState is an empty board
+    		if (boardState.firstPlayer() == myColour) {
+    			root = new Node(boardState);
+    			toExpand.add(root);
+    		} else {
+    			// otherwise, we have to initialize the root as an empty board ourselves
+    			root = new Node(null);
+    			Node c = new Node(boardState);
+    			root.addChild(c);
+    			toExpand.add(c);
+    		}
+    		
+    		// set root
+    		root.setRoot();
+            
+            // construct as much search tree as we can in the first-move time-limit
+            do {
+            	Node n = toExpand.remove();
             	
-            	// make the move
-            	PentagoBoardState movedBoardDepth2 = ((PentagoBoardState)movedBoard.clone());
-            	movedBoardDepth2.processMove(m);
-            	
-            	// check if this move ends the game before bothering to spend time on the default policy iterations
-            	if (movedBoardDepth2.gameOver()) {
-            		if (movedBoardDepth2.getWinner() == myColour) {
-            			c.addSimulations(1, 1);
+            	for (PentagoMove m : n.getBoardState().getAllLegalMoves()) {
+            		PentagoBoardState movedBoard = (PentagoBoardState) n.getBoardState().clone();
+            		movedBoard.processMove(m);
+            		Node c = new Node(movedBoard);
+                	n.addChild(c);
+                	c.addParent(n);
+            		if (movedBoard.gameOver()) {
+            			c.isLeaf();
             		} else {
-            			c.addSimulations(0, 1);
+            			c.addSimulations(MyTools.defaultPolicy(myColour, c.getBoardState(), trials), trials);
+            			toExpand.add(c);
             		}
-            	} else {
-    	        	// run the default policy starting from this node
-    	        	c.addSimulations(MyTools.defaultPolicy(myColour, movedBoardDepth2, n), n);
             	}
-            	
-            	// add this node to the list of nodes to explore
-            	toExpand.add(c);
-        	}
-        	
-        	Collections.sort(toExpand);		// sort the list, with the best node first
-        	bestNode = toExpand.get(0);		// pick the most promising node
-        }
-        
-        // find the most promising node at depth 1
-        double bestWinAverage = 0;
-        bestNode = null;
-        for (Node depth1 : root.getChildren()) {
-        	if (depth1.winAverage() > bestWinAverage) {
-        		bestWinAverage = depth1.winAverage();
-        		bestNode = depth1;
-        	}
-        }
-        
-        System.out.println("Move time: " + ((double)(System.nanoTime() - startTime)/(double)1000000000) + "s");
-        
-        if (bestNode != null) {
-        	return bestNode.getMove();
-        } else {
-        	return boardState.getRandomMove();
-        }
+            } while (((double)(System.nanoTime() - startTime)/((double)1000000000) < (double)25) && !toExpand.isEmpty());
+    	}
+    	
+    	/* TODO choose a move */    	
+    	
+    	System.out.println("Move time: " + ((double)(System.nanoTime() - startTime)/(double)1000000000) + "s");
+    	
+    	// TODO remove
+        return boardState.getRandomMove();
     }
 }
