@@ -1,6 +1,5 @@
 package student_player;
 
-import java.util.ArrayList;
 import java.util.PriorityQueue;
 import boardgame.Move;
 
@@ -10,9 +9,6 @@ import pentago_swap.PentagoMove;
 
 /** A player file submitted by a student. */
 public class StudentPlayer extends PentagoPlayer {
-
-	// list to store the time that each move took to decide
-	ArrayList<Long> moveTimes = new ArrayList<Long>();
 	
 	/* variables to fill on the first move of the game */
 	// root node of the search tree
@@ -23,6 +19,15 @@ public class StudentPlayer extends PentagoPlayer {
     
     // which colour our player is playing for
     int myColour;
+    
+	// variable for this turn's time limit (initialize at 27s, change if not first turn)
+	long timeLimit = (long)Math.pow(27, 9);
+	
+	// number of Monte-Carlo trials to run
+	int trials = 50;
+    
+    // the last opponent boardState
+    Node opponentLastNode;
 	
     /**
      * You must modify this constructor to return your student number. This is
@@ -40,16 +45,14 @@ public class StudentPlayer extends PentagoPlayer {
      * 
      * TODO later: implement a-b pruning to make this faster (hopefully fast enough?)
      */
-    public Move chooseMove(PentagoBoardState boardState) {
+    public Move chooseMove(PentagoBoardState boardState) {    	
     	// start timer to record length of each move
     	long startTime = System.nanoTime();
     	
-    	// number of Monte-Carlo trials to run
-    	int trials = 50;
-    	
     	// keep track of best move ("best" = best win average)
-    	Node bestMove;
-    	int bestMoveScore = 0;
+    	Node bestNode = null;
+    	PentagoMove bestMove = null;
+    	double bestNodeScore = 0;
     	
     	if (boardState.getTurnNumber() == 0) {
     		// determine what colour we are
@@ -59,42 +62,96 @@ public class StudentPlayer extends PentagoPlayer {
     		if (boardState.firstPlayer() == myColour) {
     			root = new Node(boardState);
     			toExpand.add(root);
+    			opponentLastNode = null;
     		} else {
     			// otherwise, we have to initialize the root as an empty board ourselves
-    			root = new Node(null);
+    			root = new Node(null);			// TODO might not want this to be null
     			Node c = new Node(boardState);
     			root.addChild(c);
     			toExpand.add(c);
+    			opponentLastNode = root;
     		}
     		
     		// set root
     		root.setRoot();
-            
-            // construct as much search tree as we can in the first-move time-limit
-            do {
-            	Node n = toExpand.remove();
-            	
-            	for (PentagoMove m : n.getBoardState().getAllLegalMoves()) {
-            		PentagoBoardState movedBoard = (PentagoBoardState) n.getBoardState().clone();
-            		movedBoard.processMove(m);
-            		Node c = new Node(movedBoard);
-                	n.addChild(c);
-                	c.addParent(n);
-            		if (movedBoard.gameOver()) {
-            			c.isLeaf();
-            		} else {
-            			c.addSimulations(MyTools.defaultPolicy(myColour, c.getBoardState(), trials), trials);
-            			toExpand.add(c);
-            		}
-            	}
-            } while (((double)(System.nanoTime() - startTime)/((double)1000000000) < (double)25) && !toExpand.isEmpty());
+    	} else {
+    		// lower time limit
+    		timeLimit = (long)Math.pow(1.75, 9);
+    		
+    		// refresh priority queue
+    		toExpand = new PriorityQueue<Node>();
     	}
     	
-    	/* TODO choose a move */    	
+    	/* choose a move */
     	
+    	// step 1: find this boardState node in the tree
+    		// this boardState must be a child of opponentLastNode
+    	Node startNode = null;
+    	
+    	if (opponentLastNode != null) {
+	    	for (Node n : opponentLastNode.getChildren()) {	// TODO never entering this loop because opponentLastNode is null
+	    		if (n.getBoardState().toString().equals(boardState.toString())) {
+	    			// the node exists and we found it
+	    			startNode = n;
+	    		}
+	    	}
+    	}
+    	if (startNode == null) {
+    		// the node didn't exist yet, so create it
+    		startNode = new Node(boardState);
+    		
+    		if (opponentLastNode != null) {
+    			opponentLastNode.addChild(startNode);
+    			startNode.addParent(opponentLastNode);
+    		}
+    	}
+    	
+    	// step 2: expand the tree downward from this node to pick the best move
+    		// construct as much search tree as we can in the time-limit
+    	toExpand.add(startNode);
+    	
+        do {
+        	Node n = toExpand.remove();
+        	
+        	for (PentagoMove m : n.getBoardState().getAllLegalMoves()) {
+        		PentagoBoardState movedBoard = (PentagoBoardState) n.getBoardState().clone();
+        		movedBoard.processMove(m);
+        		Node c = new Node(movedBoard);
+            	n.addChild(c);
+            	c.addParent(n);
+        		if (movedBoard.gameOver()) {
+        			c.isLeaf();
+        			
+        			// if this move wins the game, return immediately
+        			if (movedBoard.getWinner() == myColour) {
+        				return m;
+        			}
+        			
+        		} else {
+        			c.addSimulations(MyTools.defaultPolicy(myColour, c.getBoardState(), trials), trials);
+        			toExpand.add(c);
+        		}
+        		
+        		// keep track of the best node based on c's win rate
+        		if (c.winAverage() > bestNodeScore) {
+        			bestNodeScore = c.winAverage();
+        			bestNode = c;
+        			bestMove = m;
+        		}
+        	}
+        } while (((System.nanoTime() - startTime) < timeLimit) && !toExpand.isEmpty());
+    	
+        // TODO remove
     	System.out.println("Move time: " + ((double)(System.nanoTime() - startTime)/(double)1000000000) + "s");
     	
-    	// TODO remove
-        return boardState.getRandomMove();
+    	// save spot in graph for next turn use
+    	PentagoBoardState interim = (PentagoBoardState) bestNode.getBoardState().clone();
+    	interim.processMove(bestMove);
+    	opponentLastNode = new Node(interim);	// TODO make sure this node doesn't already exist in the graph
+    	bestNode.addChild(opponentLastNode);	// TODO make sure this link doesn't already exist
+    	opponentLastNode.addParent(bestNode);	// TODO make sure this link doesn't already exist
+    	
+    	// return move
+    	return bestMove;
     }
 }

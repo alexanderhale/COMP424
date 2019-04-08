@@ -47,11 +47,11 @@ public class Node implements Comparable<Node> {
 	public void addParent(Node p) {
 		this.parents.add(p);
 		
-		if (this.depth() % 2 == 1) {
+		/*if (this.depth() % 2 == 1) {
 			this.myColour = true;
 		} else {
 			this.myColour = false;
-		}
+		}*/
 	}
 	
 	public void removeParent(Node p) {
@@ -94,6 +94,8 @@ public class Node implements Comparable<Node> {
 	}
 	
 	public double winAverage() {
+		// TODO change this to a proper metric to compare the goodness of nodes
+			// do some research to see how to calculate this
 		return ((double)this.simulationsWon / (double)this.totalSimulations);
 	}
 	

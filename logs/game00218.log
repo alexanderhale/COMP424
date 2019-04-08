@@ -1,0 +1,15 @@
+# Server version 0.08 running on AlexHale:8123
+# Game ID: 218
+# Board class: pentago_swap.PentagoBoard
+# Timeout: 2000
+# First Move Timeout: 30000
+# Date: Mon Apr 08 19:02:57 EDT 2019
+# Player 1: Player-0, 'RandomPlayer', running on AlexHale
+# Player 2: Player-1, '260672475', running on AlexHale
+START Player-0 RandomPlayer
+START Player-1 260672475
+5 2 TR BR 0
+1 5 TL BL 1
+0 3 TL TR 0
+GAMEOVER TIMEOUT WINNER 0
+# Game ended: Mon Apr 08 19:03:33 EDT 2019
