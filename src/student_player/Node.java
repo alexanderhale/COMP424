@@ -3,6 +3,7 @@ package student_player;
 import java.util.ArrayList;
 
 import pentago_swap.PentagoBoardState;
+import pentago_swap.PentagoMove;
 
 /**
  * Implements a node in the game search tree. Tracks the node's parent(s), child(ren), 
@@ -21,8 +22,9 @@ public class Node implements Comparable<Node> {
 	private boolean root;
 	private boolean leaf;
 	private boolean myColour;
+	private PentagoMove incomingMove;
 	
-	public Node(PentagoBoardState boardState) {
+	public Node(PentagoBoardState boardState, PentagoMove incomingMove) {
 		this.parents = new ArrayList<Node>();
 		this.children = new ArrayList<Node>();
 		this.simulationsWon = 0;
@@ -30,6 +32,7 @@ public class Node implements Comparable<Node> {
 		this.boardState = boardState;
 		this.root = false;
 		this.leaf = false;
+		this.incomingMove = incomingMove;
 	}
 	
 	public void setRoot() {
@@ -93,10 +96,11 @@ public class Node implements Comparable<Node> {
 		}
 	}
 	
-	public double winAverage() {
-		// TODO change this to a proper metric to compare the goodness of nodes
-			// do some research to see how to calculate this
-		return ((double)this.simulationsWon / (double)this.totalSimulations);
+	public double upperConfidenceValue() {
+		// upper confidence formula from Lecture 8 slide 17
+			// don't really have a value for n(s,a) so used win rate instead
+		double winRate = (double)this.simulationsWon / (double)this.totalSimulations;
+		return winRate + (Math.sqrt(2))*(Math.sqrt((Math.log(this.totalSimulations))/(winRate)));
 	}
 	
 	public int winColour() {
@@ -122,9 +126,13 @@ public class Node implements Comparable<Node> {
 		return this.myColour;
 	}
 	
+	public PentagoMove incomingMove() {
+		return this.incomingMove;
+	}
+	
 	public int compareTo(Node n) {
-		double av1 = this.winAverage();
-		double av2 = n.winAverage();
+		double av1 = this.upperConfidenceValue();
+		double av2 = n.upperConfidenceValue();
 		
 		if (av1 < av2) {
 			return -1;
