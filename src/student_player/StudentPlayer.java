@@ -29,10 +29,7 @@ public class StudentPlayer extends PentagoPlayer {
      * object contains the current state of the game, which your agent must use to
      * make decisions.
      */
-    public Move chooseMove(PentagoBoardState boardState) {    	
-    	// get all the possible moves
-        ArrayList<PentagoMove> allMoves = boardState.getAllLegalMoves();
-        
+    public Move chooseMove(PentagoBoardState boardState) {    	        
         // determine what colour we are
         int myColour = boardState.getTurnPlayer();
         
@@ -44,7 +41,7 @@ public class StudentPlayer extends PentagoPlayer {
         int bestMoveScore = 0 - n;	// initialize this n losses
         
         // try each of the available moves
-        for (PentagoMove m : allMoves) {
+        for (PentagoMove m : boardState.getAllLegalMoves()) {
         	// make the move
         	PentagoBoardState movedBoard = ((PentagoBoardState)boardState.clone());
         	movedBoard.processMove(m);
